@@ -22,6 +22,8 @@ var current_task_num = 0;
 var task_nums;
 //app name
 var appName = "com.jd.pingou";
+// 第一次进入view task的标志
+var first = true;
 init();
 
 /**
@@ -80,6 +82,7 @@ function start() {
         console.info("author:tianming");
         console.info("地址:https://github.com/");
     }
+    sleep(5000);
     console.show();
 }
 
@@ -87,12 +90,22 @@ function start() {
  * 进入做任务界面
  */
 function enterActivity() {
-    if (!text("我的年货").exists()) {
+    if (!text("当前等级").exists()) {
         sleep(4000);
-        if (text("我的年货").exists()) {
+        if (text("当前等级").exists()) {
             console.info("已经在任务界面");
             sleep(1000);
-        } else {
+        } else if(text("摇一摇").exists()){
+            console.info("已经再任务界面前一界面");
+            var button_jnh = className("android.view.View")
+                .textContains("我的年货")
+                .findOne()
+                .parent();
+
+                var rect = button_jnh.bounds();
+                randomClick(rect.centerX(), rect.centerY());
+                sleep(1000);
+        }else {
             //进入我的选项卡
             if (text("我的").exists()){
                 var button_mine = text("我的").findOne().bounds();
@@ -108,6 +121,11 @@ function enterActivity() {
                     button_tt.click();
                     sleep(3000);
                 }
+                // 处理进入任务界面前的弹框
+                if(text("开心收下").exists()){
+                    text("开心收下").click();
+                    sleep(1000);
+                }
                 //点击进入做任务界面(定位方法:通过我的年货文本控件再找到它的父控件)
                 var button_jnh = className("android.view.View")
                 .textContains("我的年货")
@@ -116,8 +134,8 @@ function enterActivity() {
 
                 var rect = button_jnh.bounds();
                 randomClick(rect.centerX(), rect.centerY());
-                sleep(1000);
-                
+                // sleep(1000);
+
             }
         }
         sleep(1000);
@@ -130,9 +148,12 @@ function enterActivity() {
  */
 function viewTask(flag) {
     // 根据坐标点击任务，判断哪些需要进行
-    sleep(2000);
+    // sleep(2000);
+    if(first){
+        JUDGE_TIME = 0;
+    }
     while(true&&flag){
-        if(JUDGE_TIME >= 5 + 2 + 1){
+        if(JUDGE_TIME >= 6){
             viewAndFollow(); //sleep 1000; back; sleep 3000;
             //处理返回时出现的临时控件,如果有
             if(text("残忍离开").exists()){
@@ -145,20 +166,16 @@ function viewTask(flag) {
                 randomClick(button_comeLately.centerX(), button_comeLately.centerY());
                 sleep(1000);
             }
-
-            // if(text("逛成功啦")){
-            //     finished_task_num[finished_task_num.length] = current_task_num
-            // }
             finished_task_num[finished_task_num.length] = current_task_num;
             //重置计时器
             JUDGE_TIME = 0;
+            //把first标志设置为false
+            first = false;
             break;
-        }else{
-            if(recoverApp()){
-                break;
-            }
         }
-        
+        if(recoverApp()){
+            break;
+        }
     }
 }
 
@@ -170,7 +187,6 @@ function getNeedSelector() {
     //先处理领奖励的控件
     if(text("领奖励")&&text("我的年货")){
         allSelector_reward = text("领奖励").clickable().find();
-        // console.log(allSelector_reward.length);
         for(let j = 0; j < allSelector_reward.length; j++){
             allSelector_reward[j].click();
             sleep(1000);
@@ -189,6 +205,7 @@ function getNeedSelector() {
         for (var i = 0; i < TASK_LIST.length; i++) {
             // 获取具有需要完成任务字符串的控件集合
             var list = allSelector[index].parent().findByText(TASK_LIST[i]);
+            // console.log("list.size is:", list.size());
             // 如果长度大于0则表示存在该控件
             if (list.size() > 0) {
                 // 获取不在序列中的序号
@@ -226,7 +243,7 @@ function viewAndFollow() {
  * @returns 
  */
 function recoverApp() {
-    if (!text("我的年货").exists() && JUDGE_TIME > 30) {
+    if (JUDGE_TIME > 30) {
         if (back()) {
             // 计时器重置
             JUDGE_TIME = 0;
